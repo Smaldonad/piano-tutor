@@ -20,7 +20,7 @@ const store = {
 const DEFAULTS = {
   noteNames: 'name', chordRes: 'half', key: 'auto', fallZoom: 1, staffZoom: 1, onsetLines: true,
   pedal: true, countIn: true, metronome: false, volume: 0.8, handL: 'play', handR: 'play', loop: true,
-  side: true, tab: 'chords', view: 'both', focus: false, theme: 'classic', petals: true, tlZoom: 1,
+  side: true, tab: 'chords', view: 'both', focus: false, theme: 'classic', petals: true, tlZoom: 1, restartLead: 'none',
 };
 let S;
 try { S = Object.assign({}, DEFAULTS, JSON.parse(store.get('pt.settings') || '{}')); } catch (e) { S = { ...DEFAULTS }; }
@@ -216,13 +216,17 @@ function lowerBound(arr, beat, k = 's') {
   return lo;
 }
 
-function seek(beat, countIn = false) {
+// Clicks before the range starts again after a loop or a two-finger reset (Settings).
+const restartLead = () => ({ half: Math.max(1, Math.round(song.bpb / 2)), bar: song.bpb }[S.restartLead] || 0);
+
+function seek(beat, countIn = false, lead = 0) {
   tlManual = false;
   if (!song) return;
   Synth.stopAll();
   beat = Math.max(0, Math.min(beat, song.totalBeats));
   T.leadEnd = -Infinity;
-  if (countIn && S.countIn) { T.leadEnd = beat; beat -= song.bpb; }
+  if (countIn && S.countIn) lead = song.bpb;
+  if (lead > 0) { T.leadEnd = beat; beat -= lead; }
   if (T.playing) { T.anchorSec = song.tm.beatToSec(beat); T.anchorTime = Synth.now + 0.06; }
   else T.pausedBeat = beat;
   T.nextIdx = lowerBound(song.notes, beat);
@@ -297,13 +301,14 @@ function schedule() {
 
 // Jump back to the range start without a gap: the start of the range lines up with the exact audio
 // time the end was reached, so loops stay in time with the metronome.
+// With a count-in set, the clicks start right where the loop ended, so it is still gapless.
 function wrapLoop() {
-  const wrapAt = audioTime(range.end);
-  T.anchorSec = song.tm.beatToSec(range.start);
+  const wrapAt = audioTime(range.end), lead = restartLead();
+  T.anchorSec = song.tm.beatToSec(range.start - lead);
   T.anchorTime = wrapAt;
-  T.leadEnd = -Infinity;
+  T.leadEnd = lead ? range.start : -Infinity;
   T.nextIdx = lowerBound(song.notes, range.start);
-  T.nextTick = Math.ceil(range.start - 1e-6);
+  T.nextTick = Math.ceil(range.start - lead - 1e-6);
 }
 
 // After tempo / hand changes mid-play: restart the clock here and re-sound notes still held.
@@ -1339,7 +1344,7 @@ $('#empty').addEventListener('click', e => {
   if (act === 'lib') { $('#library').hidden = false; loadLibrary(); }
 });
 $('#play').addEventListener('click', () => (T.playing ? pause() : play()));
-$('#restart').addEventListener('click', () => song && seek(range.start));
+$('#restart').addEventListener('click', () => song && seek(range.start, false, T.playing ? restartLead() : 0));
 $('#tempo').addEventListener('input', e => setTempo(+e.target.value));
 $('#slower').addEventListener('click', () => setTempo(Math.round(tempoFactor * 100) - 5));
 $('#faster').addEventListener('click', () => setTempo(Math.round(tempoFactor * 100) + 5));
@@ -1415,7 +1420,7 @@ document.addEventListener('touchstart', e => {
   if (t - lastTwoFinger < 450) {
     lastTwoFinger = 0;
     if (hover && hover.pinned) setHover(null);
-    seek(range.start);
+    seek(range.start, false, T.playing ? restartLead() : 0);
     toast('Back to the start of the loop');
   } else lastTwoFinger = t;
 }, { capture: true, passive: true });
@@ -1556,7 +1561,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Space') { e.preventDefault(); T.playing ? pause() : play(); }
   else if (e.code === 'ArrowRight') { e.preventDefault(); seek(Math.min(range.end - bpb, Math.floor(now() / bpb + 1e-6) * bpb + bpb), false); }
   else if (e.code === 'ArrowLeft') { e.preventDefault(); seek(Math.max(range.start, Math.ceil(now() / bpb - 0.25) * bpb - bpb), false); }
-  else if (e.code === 'Home') { e.preventDefault(); seek(range.start); }
+  else if (e.code === 'Home') { e.preventDefault(); seek(range.start, false, T.playing ? restartLead() : 0); }
   else if (e.key === '[') setTempo(Math.round(tempoFactor * 100) - 5);
   else if (e.key === ']') setTempo(Math.round(tempoFactor * 100) + 5);
   else if (e.key === 'l' || e.key === 'r') {
