@@ -6,7 +6,7 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const HAND = { L: TH.lh, R: TH.rh };
 let ACCENT = TH.accent;
-function setTheme(key) { applyTheme(key); HAND.L = TH.lh; HAND.R = TH.rh; ACCENT = TH.accent; keyState.clear(); lastChordUI = ''; }
+function setTheme(key) { applyTheme(key); $('#petalsOpt').hidden = !TH.petals; HAND.L = TH.lh; HAND.R = TH.rh; ACCENT = TH.accent; keyState.clear(); lastChordUI = ''; }
 const ONSET_EPS = 0.06; // notes starting within this many beats count as "struck together"
 const IS_TOUCH = matchMedia('(pointer: coarse)').matches;
 const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -20,7 +20,7 @@ const store = {
 const DEFAULTS = {
   noteNames: 'name', chordRes: 'half', key: 'auto', fallZoom: 1, staffZoom: 1, onsetLines: true,
   pedal: true, countIn: true, metronome: false, volume: 0.8, handL: 'play', handR: 'play', loop: true,
-  side: true, tab: 'chords', view: 'both', focus: false, theme: 'classic',
+  side: true, tab: 'chords', view: 'both', focus: false, theme: 'classic', petals: true,
 };
 let S;
 try { S = Object.assign({}, DEFAULTS, JSON.parse(store.get('pt.settings') || '{}')); } catch (e) { S = { ...DEFAULTS }; }
@@ -648,7 +648,7 @@ function drawFall(t) {
   const yOf = b => H - (b - t) * ppb;
   g.fillStyle = TH.fallBg;
   g.fillRect(0, 0, W, H);
-  if (TH.petals) drawPetals(g, W, H);
+  if (TH.petals && S.petals) drawPetals(g, W, H);
   for (const k of geom.values()) if (k.black) { g.fillStyle = TH.fallBlack; g.fillRect(k.x * W, 0, k.w * W, H); }
   g.strokeStyle = TH.fallLine;
   for (const [m, k] of geom) if (m % 12 === 0 || m % 12 === 5) { g.beginPath(); g.moveTo(k.x * W + .5, 0); g.lineTo(k.x * W + .5, H); g.stroke(); }
@@ -749,18 +749,34 @@ function drawFall(t) {
   g.fillRect(0, H - 2, W, 2);
 }
 
-// Sakura theme: a few petals drifting slowly behind the falling notes.
+// Sakura theme: a few cherry-blossom petals drifting slowly behind the falling notes.
+function petalPath(g, L, w) {
+  // Rounded petal with the notch at its tip that cherry blossoms have; base at +L/2.
+  g.beginPath();
+  g.moveTo(0, L * 0.5);
+  g.bezierCurveTo(w * 0.9, L * 0.35, w * 1.05, -L * 0.25, w * 0.4, -L * 0.5);
+  g.quadraticCurveTo(w * 0.15, -L * 0.42, 0, -L * 0.32);
+  g.quadraticCurveTo(-w * 0.15, -L * 0.42, -w * 0.4, -L * 0.5);
+  g.bezierCurveTo(-w * 1.05, -L * 0.25, -w * 0.9, L * 0.35, 0, L * 0.5);
+  g.closePath();
+}
 function drawPetals(g, W, H) {
   const t = performance.now() / 1000;
   for (let i = 0; i < 16; i++) {
     const seed = (i * 0.618034) % 1, speed = 10 + seed * 14;
     const y = ((t * speed + seed * (H + 40)) % (H + 40)) - 20;
     const x = ((seed * 1.7 % 1) * W + Math.sin(t * 0.4 + i) * 30 + W) % W;
+    const L = 13 + seed * 7, w = L * 0.55, a = 0.12 + seed * 0.12;
     g.save();
     g.translate(x, y);
-    g.rotate(t * (0.3 + seed * 0.4) + i);
-    g.fillStyle = `rgba(255, ${170 + Math.round(seed * 40)}, ${200 + Math.round(seed * 30)}, ${0.10 + seed * 0.12})`;
-    g.beginPath(); g.ellipse(0, 0, 6 + seed * 4, 3 + seed * 2, 0, 0, Math.PI * 2); g.fill();
+    g.rotate(Math.sin(t * (0.5 + seed * 0.4) + i) * 1.2 + i);
+    g.scale(0.35 + 0.65 * Math.abs(Math.cos(t * (0.7 + seed * 0.6) + i * 2)), 1); // tumbling
+    const grad = g.createLinearGradient(0, L * 0.5, 0, -L * 0.5);
+    grad.addColorStop(0, `rgba(236, 120, 160, ${a})`);
+    grad.addColorStop(1, `rgba(255, 214, 228, ${a})`);
+    g.fillStyle = grad;
+    petalPath(g, L, w);
+    g.fill();
     g.restore();
   }
 }

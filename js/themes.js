@@ -29,7 +29,7 @@ const TH = { ...THEMES.classic };
 
 function applyTheme(key) {
   const t = THEMES[key] || THEMES.classic;
-  Object.assign(TH, t);
+  Object.assign(TH, { petals: false }, t);
   const root = document.documentElement.style;
   for (const [k, v] of Object.entries(t.css)) root.setProperty('--' + k.replace(/[A-Z]/g, c => '-' + c.toLowerCase()), v);
   root.setProperty('--lh', t.lh);
