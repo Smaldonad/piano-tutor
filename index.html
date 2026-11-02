@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Piano Tutor">
+<meta name="theme-color" content="#14161b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<title>Piano Tutor</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="nosong">
+<header class="topbar">
+  <div class="row-app">
+    <div class="pieces">
+      <button id="piecesBtn" class="primary" aria-haspopup="menu">Pieces<span data-icon="chevron"></span></button>
+      <div id="piecesMenu" class="menu card" hidden>
+        <button id="openMidi"><span data-icon="file"></span>Open a MIDI file…</button>
+        <button id="libBtn" hidden><span data-icon="library"></span>Library</button>
+        <button id="demoBtn"><span data-icon="music"></span>Demo piece</button>
+      </div>
+      <input type="file" id="midiFile" accept=".mid,.midi,audio/midi,audio/x-midi" hidden>
+    </div>
+    <div class="songinfo">
+      <div id="songTitle">Piano Tutor</div>
+      <div id="songMeta"></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="now"><div id="nowChord"></div><div id="nowBar" class="mono"></div></div>
+    <div class="seg view" id="viewSeg" title="What to show (V)"><button data-view="both">Both</button><button data-view="sheet">Sheet</button><button data-view="keys">Keys</button></div>
+    <button id="focusBtn" class="icon" title="Full screen (F)" data-icon="expand"></button>
+    <button id="sideBtn" class="icon" title="Show / hide side panel" data-icon="sidebar"></button>
+  </div>
+  <div class="row-practice">
+    <div class="group">
+      <button id="restart" class="icon" title="Back to start of range (Home)" data-icon="restart"></button>
+      <button id="play" class="play" title="Play / pause (Space)"></button>
+    </div>
+    <div class="group speed">
+      <span class="lbl">Speed</span>
+      <button id="slower" class="icon small" title="Slower ([)" data-icon="minus"></button>
+      <input type="range" id="tempo" min="25" max="150" step="5" value="100">
+      <button id="faster" class="icon small" title="Faster (])" data-icon="plus"></button>
+      <span id="tempoLbl" class="mono"></span>
+    </div>
+    <div class="divider"></div>
+    <div class="group range">
+      <select id="section" title="Practice range"></select>
+      <button id="loopBtn" class="toggle" title="Repeat the range"><span data-icon="loop"></span>Loop</button>
+    </div>
+    <div class="divider"></div>
+    <div class="group hands">
+      <div class="seg hand" data-hand="L"><span class="hl">L</span><button data-v="play">Play</button><button data-v="mute" title="Shown but silent: you play it">Mute</button><button data-v="hide">Hide</button></div>
+      <div class="seg hand" data-hand="R"><span class="hl">R</span><button data-v="play">Play</button><button data-v="mute" title="Shown but silent: you play it">Mute</button><button data-v="hide">Hide</button></div>
+    </div>
+  </div>
+</header>
+
+<canvas id="timeline" title="Tap to jump · drag to choose a loop range · double-tap to reset"></canvas>
+
+<main>
+  <section id="stage">
+    <canvas id="score"></canvas>
+    <canvas id="fall"></canvas>
+    <div id="kbd"></div>
+    <div id="tip" class="tip" hidden></div>
+    <div id="focusbar">
+      <button id="fPlay" class="play" title="Play / pause"></button>
+      <div class="seg view" id="fViewSeg"><button data-view="both">Both</button><button data-view="sheet">Sheet</button><button data-view="keys">Keys</button></div>
+      <span id="fChord"></span><span id="fBar" class="mono"></span>
+      <button id="fExit" class="icon" title="Exit full screen (F)" data-icon="close"></button>
+    </div>
+    <div id="empty">
+      <div class="card">
+        <h1>Learn any piece from a MIDI file</h1>
+        <p>Open a <b>.mid</b> file (most sheet-music sites offer one next to the sheet).
+          You'll get sheet music and falling notes side by side, the chords, practice sections, notes and progress tracking.</p>
+        <div class="row"><button class="primary big" data-act="open">Open a MIDI file</button><button class="big" data-act="demo">Try the demo</button><button class="big" data-act="lib" id="libBtn2" hidden>Library</button></div>
+        <ul>
+          <li>Tap or hover the falling notes to see which notes are played together.</li>
+          <li>Set a hand to <b>Mute</b> to play that part yourself while the app plays the other.</li>
+          <li>Drag on the timeline to loop a passage; slow it down with Speed.</li>
+          <li>Double-tap with two fingers anywhere to jump back to the start of the loop.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <aside id="side">
+    <nav class="tabs">
+      <button data-tab="chords">Chords</button>
+      <button data-tab="notes">Notes</button>
+      <button data-tab="progress">Progress</button>
+      <button data-tab="tracks">Tracks</button>
+      <button data-tab="settings">Settings</button>
+      <button id="sideClose" class="closebtn" title="Close panel" data-icon="close"></button>
+    </nav>
+
+    <div class="tab" id="tab-chords">
+      <div class="chordcards">
+        <div class="card ccard">
+          <div class="label">Now</div>
+          <div class="cname"><span id="cNowName">–</span><span id="cNowRoman" class="roman"></span></div>
+          <div id="cNowNotes" class="chips"></div>
+          <div id="cNowKbd" class="minikbd"></div>
+        </div>
+        <div class="card ccard next">
+          <div class="label">Next <span id="cNextWhen" class="hint"></span></div>
+          <div class="cname"><span id="cNextName">–</span><span id="cNextRoman" class="roman"></span></div>
+          <div id="cNextKbd" class="minikbd"></div>
+        </div>
+      </div>
+      <div class="label">Chord sheet <span class="hint">tap a bar to jump · long-press or shift-click to loop up to it</span></div>
+      <div id="sheet" class="sheet"></div>
+    </div>
+
+    <div class="tab" id="tab-notes" hidden>
+      <div class="toolbar">
+        <button id="nOpen">Open…</button>
+        <button id="nSave">Save / Share…</button>
+        <button id="nTag">+ Bar tag</button>
+        <button id="nNew" class="ghost">Clear</button>
+      </div>
+      <div id="nStatus" class="hint"></div>
+      <textarea id="notesText" spellcheck="true" placeholder="Practice notes for this piece.
+
+Tag bars like [Bar 12] or [Bars 9-16] and they become buttons below that jump to (and loop) that passage.
+
+Notes save automatically (to your Mac when the Piano Tutor server is running). Save / Share exports a copy."></textarea>
+      <div id="tagList" class="taglist"></div>
+      <input type="file" id="notesFile" accept=".txt,.md,text/plain" hidden>
+    </div>
+
+    <div class="tab" id="tab-progress" hidden>
+      <div class="label">Practice time <span id="pSummary" class="hint"></span></div>
+      <div id="pDays" class="pdays"></div>
+      <div class="label">Sections <span class="hint">tap the status to change it · tap a name to loop it</span></div>
+      <div id="pSections"></div>
+      <div id="pStatus" class="hint"></div>
+    </div>
+
+    <div class="tab" id="tab-tracks" hidden>
+      <p class="hint">Choose which hand each MIDI track belongs to. Single-track files can be split at a note.</p>
+      <div id="tracksBody"></div>
+    </div>
+
+    <div class="tab" id="tab-settings" hidden>
+      <div class="form">
+        <label>Theme <select data-setting="theme" id="themeSelect"></select></label>
+        <label>Key signature <select data-setting="key" id="keySelect"></select></label>
+        <label>Chord detection <select data-setting="chordRes">
+          <option value="bar">One per bar</option><option value="half">Up to two per bar</option><option value="beat">Every beat</option></select></label>
+        <label>Note names <select data-setting="noteNames">
+          <option value="off">Off</option><option value="name">Letter (A♭)</option><option value="oct">Letter + octave (A♭4)</option></select></label>
+        <label><span class="lrow">Falling-notes zoom<span class="val" data-val="fallZoom"></span></span><input type="range" data-setting="fallZoom" min="0.5" max="2.5" step="0.1"></label>
+        <label><span class="lrow">Sheet zoom<span class="val" data-val="staffZoom"></span></span><input type="range" data-setting="staffZoom" min="0.6" max="2" step="0.1"></label>
+        <label class="check"><input type="checkbox" data-setting="onsetLines"> Lines joining notes struck together</label>
+        <label class="check"><input type="checkbox" data-setting="countIn"> Count-in bar before playing</label>
+        <label class="check"><input type="checkbox" data-setting="metronome"> Metronome</label>
+        <label class="check"><input type="checkbox" data-setting="pedal"> Use sustain pedal from the MIDI</label>
+        <label><span class="lrow">Volume<span class="val" data-val="volume"></span></span><input type="range" data-setting="volume" min="0" max="1" step="0.05"></label>
+      </div>
+      <div class="label kbd-only">Keyboard shortcuts</div>
+      <p class="hint kbd-only">Space play/pause · ←/→ one bar · Home start of range · [ / ] speed · L / R cycle hand mode · V view · F full screen · Esc exit full screen</p>
+      <div class="label">About</div>
+      <p class="hint">Runs entirely on this device; files you open never leave it. Music font: Bravura (SIL Open Font License).</p>
+    </div>
+  </aside>
+</main>
+
+<div id="library" hidden>
+  <div class="card libcard">
+    <div class="libhead"><b>Library</b><span class="hint" id="libHint"></span><button data-act="closelib" class="ghost">Close</button></div>
+    <div id="libList"></div>
+  </div>
+</div>
+<div id="toast" hidden></div>
+<div id="drop" hidden>Drop a MIDI file to open it</div>
+
+<script src="js/themes.js"></script>
+<script src="js/theory.js"></script>
+<script src="js/midi.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

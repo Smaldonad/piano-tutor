@@ -1,0 +1,11 @@
+# Local certificates, including the private key the iPad trusts
+certs/
+# Your own MIDI files (usually someone else's arrangement)
+midi/*
+!midi/.gitkeep
+# Personal practice data
+notes/
+progress/
+debug.log
+*.tmp
+.DS_Store
