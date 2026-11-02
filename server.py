@@ -73,7 +73,8 @@ def song_path(song, folder, ext):
 # Only these files are served. An allowlist rather than a blocklist: macOS paths are
 # case-insensitive and URLs can be percent-encoded, so blocking /certs/ alone is not enough.
 STATIC = re.compile(r'/(index\.html|styles\.css|manifest\.webmanifest|sw\.js|js/[a-z]+\.js'
-                    r'|fonts/Bravura\.woff2|icons/icon-\d+\.png|midi/[^/\\]+(?i:\.midi?))?')
+                    r'|fonts/Bravura\.woff2|icons/icon-\d+\.png|samples/(?:index\.json|\d+v\d+\.m4a)'
+                    r'|midi/[^/\\]+(?i:\.midi?))?')
 
 
 def body_length(headers, limit):

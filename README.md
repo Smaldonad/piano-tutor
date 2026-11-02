@@ -79,6 +79,8 @@ The server is meant for a trusted home network. It has no login: anyone on the s
 
 Music notation font: [Bravura](https://github.com/steinbergmedia/bravura), licensed under the SIL Open Font License (`fonts/OFL.txt`).
 
+Piano sound: [Salamander Grand Piano V3](https://github.com/sfzinstruments/SalamanderGrandPiano) by Alexander Holm, licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The recordings in `samples/` are trimmed and compressed with `tools/build_samples.py` (see `samples/README.md`).
+
 ## License
 
-MIT, see `LICENSE`. The Bravura font keeps its own license (SIL Open Font License).
+MIT, see `LICENSE`. The Bravura font (SIL Open Font License) and the piano samples (CC BY 3.0) keep their own licenses.

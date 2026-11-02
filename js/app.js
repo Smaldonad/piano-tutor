@@ -20,7 +20,7 @@ const store = {
 const DEFAULTS = {
   noteNames: 'name', chordRes: 'half', key: 'auto', fallZoom: 1, staffZoom: 1, onsetLines: true,
   pedal: true, countIn: true, metronome: false, volume: 0.8, handL: 'play', handR: 'play', loop: true,
-  side: true, tab: 'chords', view: 'both', focus: false, theme: 'classic', petals: true, tlZoom: 1, restartLead: 'none',
+  side: true, tab: 'chords', view: 'both', focus: false, theme: 'classic', petals: true, tlZoom: 1, restartLead: 'none', sound: 'samples',
 };
 let S;
 try { S = Object.assign({}, DEFAULTS, JSON.parse(store.get('pt.settings') || '{}')); } catch (e) { S = { ...DEFAULTS }; }
@@ -28,6 +28,7 @@ const saveSettings = () => store.set('pt.settings', JSON.stringify(S));
 
 // ---------------- state ----------------
 let raw = null, source = null;    // parsed file + {title, kind, b64}
+let pieceSound = null;            // per-piece piano sound override (see applySound)
 let assign = [], splitPoint = 60; // per-track hand assignment
 let song = null, range = null, tempoFactor = 1;
 const T = { playing: false, anchorSec: 0, anchorTime: 0, pausedBeat: 0, nextIdx: 0, leadEnd: -Infinity, nextTick: Infinity };
@@ -125,6 +126,7 @@ function loadRaw(r, src) {
   try { prefs = JSON.parse(store.get('pt.song.' + (src.id || src.title)) || 'null'); } catch (e) {}
   assign = prefs && prefs.assign && prefs.assign.length === r.tracks.length ? prefs.assign : defaultAssign(r.tracks);
   splitPoint = prefs && prefs.split ? prefs.split : 60;
+  pieceSound = prefs && prefs.sound || null;
   setHover(null);
   buildSong();
   range = wholeRange();
@@ -134,6 +136,7 @@ function loadRaw(r, src) {
   renderAll();
   loadNotesForSong();
   loadProgress();
+  applySound();
   $('#empty').hidden = true;
   document.body.classList.remove('nosong');
   if (src.kind === 'demo') store.set('pt.last', JSON.stringify({ kind: 'demo' }));
@@ -158,7 +161,7 @@ function rebuild() {
   if (wasPlaying) play();
 }
 
-function savePrefs() { store.set('pt.song.' + songId(), JSON.stringify({ assign, split: splitPoint })); }
+function savePrefs() { store.set('pt.song.' + songId(), JSON.stringify({ assign, split: splitPoint, sound: pieceSound })); }
 
 async function openMidiFile(file) {
   try {
@@ -1550,6 +1553,7 @@ $$('[data-setting]').forEach(el => el.addEventListener(el.type === 'range' ? 'in
   showSettingValues();
   if (k === 'volume') Synth.setVolume(S.volume);
   if (k === 'theme') setTheme(S.theme);
+  if (k === 'sound') { if (song && pieceSound) { pieceSound = null; savePrefs(); } applySound(); }
   if (song && (k === 'key' || k === 'chordRes' || k === 'pedal')) rebuild();
   if (k === 'noteNames') { keyState.clear(); lastChordUI = ''; }
 }));
@@ -1774,6 +1778,33 @@ piecesMenu.addEventListener('click', e => { if (e.target.closest('button')) piec
 // ---------------- boot ----------------
 $('#themeSelect').innerHTML = Object.entries(THEMES).map(([k, t]) => `<option value="${k}">${t.name}</option>`).join('');
 setTheme(S.theme);
+// Piano sound: the setting, unless this piece was switched to something lighter (pieceSound).
+// A piece that would need more recordings than the memory limit asks first.
+async function applySound() {
+  const mode = pieceSound || S.sound;
+  if (!(await Samples.use(mode === 'synth' ? null : 'samples', mode === 'light')) || !song) return;
+  if (mode === 'samples') {
+    const n = Samples.count(song.notes, false);
+    if (n > Samples.MAX) {
+      const mb = k => Math.round(k * 2.2 / 10) * 10; // about 2.2 MB of memory per decoded recording
+      $('#soundAskText').textContent = `To play it with the full piano sound it would load ${n} recordings, about ${mb(n)} MB of memory, `
+        + `which can make the app slow or close on an iPad. The lighter piano needs ${Samples.count(song.notes, true)} (about ${mb(Samples.count(song.notes, true))} MB). `
+        + 'Your choice is kept for this piece only.';
+      $('#soundAsk').hidden = false;
+      return;
+    }
+  }
+  Samples.prepare(song.notes);
+}
+$('#soundAsk').addEventListener('click', e => {
+  const b = e.target.closest('[data-sound]');
+  if (!b) return;
+  $('#soundAsk').hidden = true;
+  pieceSound = b.dataset.sound;
+  savePrefs();
+  applySound();
+});
+applySound();
 renderKeySelect();
 syncSettingsForm();
 showTab(S.tab);

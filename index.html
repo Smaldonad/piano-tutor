@@ -167,6 +167,7 @@ Notes save automatically (to your Mac when the Piano Tutor server is running). S
         <label class="check"><input type="checkbox" data-setting="metronome"> Metronome</label>
         <label>After a loop or reset <select data-setting="restartLead"><option value="none">Start right away</option><option value="half">Count in half a bar</option><option value="bar">Count in a full bar</option></select></label>
         <label class="check"><input type="checkbox" data-setting="pedal"> Use sustain pedal from the MIDI</label>
+        <label>Piano sound <select data-setting="sound"><option value="samples">Recorded piano</option><option value="light">Recorded piano, lighter</option><option value="synth">Simple synth</option></select></label>
         <label><span class="lrow">Volume<span class="val" data-val="volume"></span></span><input type="range" data-setting="volume" min="0" max="1" step="0.05"></label>
       </div>
       <div class="label kbd-only">Keyboard shortcuts</div>
@@ -181,6 +182,13 @@ Notes save automatically (to your Mac when the Piano Tutor server is running). S
   <div class="card libcard">
     <div class="libhead"><b>Library</b><span class="hint" id="libHint"></span><button data-act="closelib" class="ghost">Close</button></div>
     <div id="libList"></div>
+  </div>
+</div>
+<div id="soundAsk" hidden>
+  <div class="card askcard">
+    <b>This piece needs a lot of piano recordings</b>
+    <p class="hint" id="soundAskText"></p>
+    <div class="row"><button class="primary" data-sound="light">Use the lighter piano</button><button data-sound="synth">Use the simple synth</button></div>
   </div>
 </div>
 <div id="toast" hidden></div>

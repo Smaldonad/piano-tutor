@@ -25,10 +25,21 @@ async function refresh(cache, url, cached) {
   } catch (e) { /* Mac not reachable: keep the saved copy */ }
 }
 
+// Piano samples never change once built, so the saved copy is used as is.
+async function sample(req, url) {
+  const cache = await caches.open('pt-samples');
+  const hit = await cache.match(url);
+  if (hit) return hit;
+  const res = await fetch(req);
+  if (res.ok && req.method === 'GET') cache.put(url, res.clone());
+  return res;
+}
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = req.mode === 'navigate' ? urls[0] : req.url.split('?')[0];
+  if (/\/samples\//.test(url)) return e.respondWith(sample(req, url));
   if (!urls.includes(url)) return; // API calls, MIDI files etc. go straight to the network
   e.respondWith((async () => {
     const cache = await caches.open(SHELL);
