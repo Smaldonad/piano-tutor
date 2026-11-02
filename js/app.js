@@ -1692,7 +1692,6 @@ document.addEventListener('pointerdown', e => { if (!piecesMenu.hidden && !e.tar
 piecesMenu.addEventListener('click', e => { if (e.target.closest('button')) piecesMenu.hidden = true; });
 
 // ---------------- boot ----------------
-if (S.theme === 'iio') S.theme = 'fire'; // renamed theme
 $('#themeSelect').innerHTML = Object.entries(THEMES).map(([k, t]) => `<option value="${k}">${t.name}</option>`).join('');
 setTheme(S.theme);
 renderKeySelect();
