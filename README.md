@@ -2,7 +2,7 @@
 
 A browser app for learning piano pieces from MIDI files, built for an iPad propped on the music stand.
 
-I made this for myself, to learn a piece I wanted to play, and I'm sharing it in case someone else finds it useful. It is not maintained: I don't plan to update it, fix bugs or review issues and pull requests. Feel free to fork it and make it your own. Most of the code was written by Claude Code.
+I made this for myself, to learn a piece I wanted to play, and I'm sharing it in case someone else finds it useful. It is not maintained: I don't plan to update it, fix bugs or review issues and pull requests. Feel free to fork it and make it your own.
 
 - Sheet music and falling notes side by side, in sync, with a keyboard showing what to press
 - Chord names for every bar, with the next chord shown ahead of time
@@ -39,3 +39,7 @@ The server is meant for a trusted home network. It has no login: anyone on the s
 ## Credits
 
 Music notation font: [Bravura](https://github.com/steinbergmedia/bravura), licensed under the SIL Open Font License (`fonts/OFL.txt`).
+
+## License
+
+MIT, see `LICENSE`. The Bravura font keeps its own license (SIL Open Font License).
