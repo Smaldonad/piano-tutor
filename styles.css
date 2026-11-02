@@ -77,7 +77,7 @@ input[type=range], input[type=checkbox] { accent-color: var(--primary); }
 
 /* nothing loaded yet: only the welcome card and the Pieces button */
 body.nosong .row-practice, body.nosong .now, body.nosong #viewSeg, body.nosong #focusBtn, body.nosong #sideBtn,
-body.nosong #timeline, body.nosong #side, body.nosong #score, body.nosong #fall, body.nosong #kbd { display: none !important; }
+body.nosong #timeline, body.nosong #tlScroll, body.nosong #side, body.nosong #score, body.nosong #fall, body.nosong #kbd { display: none !important; }
 
 #timeline { display: block; width: 100%; height: 34px; background: var(--panel); cursor: pointer; touch-action: none; }
 
@@ -207,7 +207,7 @@ body.noside #side { display: none; }
 body.view-sheet #fall, body.view-sheet #kbd { display: none; }
 body.view-sheet #score { flex: 1; height: auto; min-height: 0; }
 body.view-keys #score { display: none; }
-body.focus .topbar, body.focus #timeline, body.focus #side { display: none !important; }
+body.focus .topbar, body.focus #timeline, body.focus #tlScroll, body.focus #side { display: none !important; }
 #focusbar { display: none; position: absolute; top: calc(8px + env(safe-area-inset-top)); right: 10px; z-index: 6; align-items: center; gap: 8px;
   background: color-mix(in srgb, var(--panel) 78%, transparent); border: 1px solid var(--line); border-radius: 12px; padding: 6px 8px;
   box-shadow: 0 6px 18px rgba(0,0,0,.35); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); transition: opacity .25s; }
@@ -240,3 +240,9 @@ body.focus.view-sheet:not(.paper-dark) #focusbar .seg button:not(.on) { color: #
 .lrow { display: flex; justify-content: space-between; }
 .val { color: var(--fg); font-variant-numeric: tabular-nums; }
 @media (pointer: coarse) { .kbd-only { display: none; } }
+
+/* navigation bar scrollbar, shown when the navigation bar is zoomed in */
+#tlScroll { position: relative; height: 10px; background: var(--panel); touch-action: none; cursor: pointer; }
+#tlScroll::before { content: ''; position: absolute; left: 0; right: 0; top: 4px; height: 2px; background: color-mix(in srgb, var(--fg) 7%, transparent); }
+#tlThumb { position: absolute; top: 3px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--fg) 30%, transparent); transition: top .12s, height .12s, background .12s; }
+#tlScroll:hover #tlThumb, #tlScroll.drag #tlThumb { top: 2px; height: 6px; background: var(--primary); }

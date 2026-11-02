@@ -62,6 +62,7 @@
 </header>
 
 <canvas id="timeline" title="Tap to jump · drag to choose a loop range · double-tap to reset"></canvas>
+<div id="tlScroll" hidden><div id="tlThumb"></div></div>
 
 <main>
   <section id="stage">
@@ -159,6 +160,7 @@ Notes save automatically (to your Mac when the Piano Tutor server is running). S
         <label>Note names <select data-setting="noteNames">
           <option value="off">Off</option><option value="name">Letter (A♭)</option><option value="oct">Letter + octave (A♭4)</option></select></label>
         <label><span class="lrow">Falling-notes zoom<span class="val" data-val="fallZoom"></span></span><input type="range" data-setting="fallZoom" min="0.5" max="2.5" step="0.1"></label>
+        <label><span class="lrow">Navigation bar zoom<span class="val" data-val="tlZoom"></span></span><input type="range" data-setting="tlZoom" min="1" max="10" step="0.1"></label>
         <label><span class="lrow">Sheet zoom<span class="val" data-val="staffZoom"></span></span><input type="range" data-setting="staffZoom" min="0.6" max="2" step="0.1"></label>
         <label class="check"><input type="checkbox" data-setting="onsetLines"> Lines joining notes struck together</label>
         <label class="check"><input type="checkbox" data-setting="countIn"> Count-in bar before playing</label>

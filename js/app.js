@@ -20,7 +20,7 @@ const store = {
 const DEFAULTS = {
   noteNames: 'name', chordRes: 'half', key: 'auto', fallZoom: 1, staffZoom: 1, onsetLines: true,
   pedal: true, countIn: true, metronome: false, volume: 0.8, handL: 'play', handR: 'play', loop: true,
-  side: true, tab: 'chords', view: 'both', focus: false, theme: 'classic', petals: true,
+  side: true, tab: 'chords', view: 'both', focus: false, theme: 'classic', petals: true, tlZoom: 1,
 };
 let S;
 try { S = Object.assign({}, DEFAULTS, JSON.parse(store.get('pt.settings') || '{}')); } catch (e) { S = { ...DEFAULTS }; }
@@ -217,6 +217,7 @@ function lowerBound(arr, beat, k = 's') {
 }
 
 function seek(beat, countIn = false) {
+  tlManual = false;
   if (!song) return;
   Synth.stopAll();
   beat = Math.max(0, Math.min(beat, song.totalBeats));
@@ -782,6 +783,19 @@ function drawPetals(g, W, H) {
 }
 
 // ---------------- timeline ----------------
+// Zoomed in, the timeline shows part of the piece and scrolls to keep the playhead in view.
+// Scrolling it by hand stops the following until playback starts or the playhead is moved.
+var tlView = 0, tlManual = false;
+const tlSpan = () => song.totalBeats / Math.max(1, +S.tlZoom || 1);
+function updateTlView(t) {
+  const span = tlSpan(), tot = song.totalBeats;
+  if (span >= tot) { tlView = 0; return; }
+  if (T.playing) tlManual = false;
+  if (timelineDrag || tlManual) { tlView = Math.max(0, Math.min(tot - span, tlView)); return; }
+  const p = Math.max(0, t);
+  if (p < tlView || p > tlView + span * 0.85) tlView = p - span * 0.15;
+  tlView = Math.max(0, Math.min(tot - span, tlView));
+}
 function drawTimeline(t) {
   const [g, W, H] = fit($('#timeline'));
   g.fillStyle = TH.css.panel;
@@ -793,26 +807,39 @@ function drawTimeline(t) {
     for (const n of song.notes) song.density[Math.min(bars - 1, Math.floor(n.s / bpb))]++;
     song.densMax = Math.max(1, ...song.density);
   }
-  const bw = W / bars;
+  updateTlView(t);
+  const span = tlSpan(), X = b => (b - tlView) / span * W, bw = bpb / span * W;
+  const first = Math.max(0, Math.floor(tlView / bpb)), last = Math.min(bars - 1, Math.ceil((tlView + span) / bpb));
   g.fillStyle = TH.fallBar;
-  song.density.forEach((c, i) => { const h = (c / song.densMax) * (H - 10); g.fillRect(i * bw, H - h, Math.max(bw - 1, 1), h); });
+  for (let i = first; i <= last; i++) { const h = (song.density[i] / song.densMax) * (H - 10); g.fillRect(X(i * bpb), H - h, Math.max(bw - 1, 1), h); }
   const r = timelineDrag && timelineDrag.range ? timelineDrag.range : range;
   if (r.start > 0 || r.end < tot) {
     g.fillStyle = HAND.L + '47';
-    g.fillRect(r.start / tot * W, 0, (r.end - r.start) / tot * W, H);
+    g.fillRect(X(r.start), 0, X(r.end) - X(r.start), H);
     g.fillStyle = HAND.L;
-    g.fillRect(r.start / tot * W, 0, 2, H);
-    g.fillRect(r.end / tot * W - 2, 0, 2, H);
+    g.fillRect(X(r.start), 0, 2, H);
+    g.fillRect(X(r.end) - 2, 0, 2, H);
+  }
+  // bar numbers once bars are wide enough to aim at
+  if (span < tot && bw >= 10) {
+    const step = [1, 2, 4, 5, 10, 20].find(k => k * bw >= 26) || 50;
+    g.font = '500 9px -apple-system, sans-serif';
+    for (let i = first; i <= last; i++) {
+      if (i % step) continue;
+      g.fillStyle = TH.css.line; g.fillRect(X(i * bpb), 15, 1, H - 15);
+      g.fillStyle = TH.css.dim; g.fillText(String(i + 1), X(i * bpb) + 3, 25);
+    }
   }
   // sections: full name when it fits, else just the number; the section being played is highlighted
   const curSec = song.sections.find(s => t >= s.start && t < s.end);
   for (const s of song.sections) {
-    const x = s.start / tot * W, w = (s.end - s.start) / tot * W - 6;
+    if (X(s.end) < 0 || X(s.start) > W) continue;
+    const x = Math.max(0, X(s.start)), w = X(s.end) - x - 6;
     const col = { learning: TH.accent, learned: TH.css.primary }[statusOf(s.name)];
     if (col) { g.fillStyle = col; g.fillRect(x + 1, H - 3, w + 5, 3); }
     const cur = s === curSec;
     g.fillStyle = TH.css.line;
-    g.fillRect(x, 0, 1, H);
+    g.fillRect(X(s.start), 0, 1, H);
     g.font = (cur ? '700 ' : '500 ') + '10px -apple-system, sans-serif';
     g.fillStyle = cur ? TH.css.fg : TH.css.dim;
     const num = (/^(\d+)\s*·/.exec(s.name) || [])[1];
@@ -822,9 +849,16 @@ function drawTimeline(t) {
     if (label && measureMusic(g, label) <= w) fillMusic(g, label, x + 4, 11);
   }
   g.fillStyle = ACCENT;
-  for (const tag of notesTags) { const x = ((tag.from - 1) * bpb + bpb / 2) / tot * W; g.beginPath(); g.arc(x, H - 5, 3, 0, Math.PI * 2); g.fill(); }
+  for (const tag of notesTags) { const x = X((tag.from - 1) * bpb + bpb / 2); g.beginPath(); g.arc(x, H - 5, 3, 0, Math.PI * 2); g.fill(); }
   g.fillStyle = HAND.R;
-  g.fillRect(Math.max(0, t) / tot * W - 1, 0, 3, H);
+  g.fillRect(X(Math.max(0, t)) - 1, 0, 3, H);
+  const zoomed = span < tot, sb = $('#tlScroll');
+  if (sb.hidden === zoomed) sb.hidden = !zoomed;
+  if (zoomed) {
+    const th = $('#tlThumb'), l = (tlView / tot * 100).toFixed(2) + '%', w = (span / tot * 100).toFixed(2) + '%';
+    if (th.style.left !== l) th.style.left = l;
+    if (th.style.width !== w) th.style.width = w;
+  }
 }
 
 // ---------------- hover / inspect ----------------
@@ -1229,7 +1263,12 @@ function syncSettingsForm() {
   });
   showSettingValues();
 }
-function showSettingValues() { $$('[data-val]').forEach(el => { el.textContent = Math.round(S[el.dataset.val] * 100) + '%'; }); }
+function showSettingValues() {
+  $$('[data-val]').forEach(el => {
+    const k = el.dataset.val, v = +S[k];
+    el.textContent = k === 'tlZoom' ? (v <= 1 ? 'Whole piece' : +v.toFixed(1) + '×') : Math.round(v * 100) + '%';
+  });
+}
 
 function showTab(tab) {
   S.tab = tab; saveSettings();
@@ -1384,7 +1423,7 @@ document.addEventListener('touchstart', e => {
 // timeline: tap = jump, drag = loop range, double tap = reset
 let timelineDrag = null, lastTap = 0;
 const tl = $('#timeline');
-const tlBar = e => { const r = tl.getBoundingClientRect(); return Math.max(0, Math.min(song.bars - 1, Math.floor((e.clientX - r.left) / r.width * song.bars))); };
+const tlBar = e => { const r = tl.getBoundingClientRect(); return Math.max(0, Math.min(song.bars - 1, Math.floor((tlView + (e.clientX - r.left) / r.width * tlSpan()) / song.bpb))); };
 tl.addEventListener('pointerdown', e => {
   if (!song) return;
   tl.setPointerCapture(e.pointerId);
@@ -1408,6 +1447,26 @@ tl.addEventListener('pointerup', e => {
   if (beat < range.start || beat >= range.end) setRange(null);
   seek(beat);
 });
+
+// navigation bar scrollbar: drag the thumb, or tap the track to jump there
+const tlScroll = $('#tlScroll');
+let scrollDrag = null;
+function scrollTo(e) {
+  const r = tlScroll.getBoundingClientRect(), tot = song.totalBeats, span = tlSpan();
+  tlView = Math.max(0, Math.min(tot - span, (e.clientX - r.left - scrollDrag.grab) / r.width * tot));
+  tlManual = true;
+}
+tlScroll.addEventListener('pointerdown', e => {
+  if (!song) return;
+  tlScroll.setPointerCapture(e.pointerId);
+  const r = tlScroll.getBoundingClientRect(), tx = r.left + tlView / song.totalBeats * r.width, tw = tlSpan() / song.totalBeats * r.width;
+  // grabbing the thumb keeps the grab point; tapping the track centres the thumb there
+  scrollDrag = { grab: e.clientX >= tx && e.clientX <= tx + tw ? e.clientX - tx : tw / 2 };
+  tlScroll.classList.add('drag');
+  scrollTo(e);
+});
+tlScroll.addEventListener('pointermove', e => { if (scrollDrag) scrollTo(e); });
+for (const ev of ['pointerup', 'pointercancel']) tlScroll.addEventListener(ev, () => { scrollDrag = null; tlScroll.classList.remove('drag'); });
 
 // chord sheet: tap = jump, shift-click / long-press = loop from current range start (or current bar) to here
 let sheetPress = null;
