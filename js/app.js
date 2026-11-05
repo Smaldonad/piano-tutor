@@ -32,6 +32,8 @@ let pieceSound = null;            // per-piece piano sound override (see applySo
 let assign = [], splitPoint = 60; // per-track hand assignment
 let song = null, range = null, tempoFactor = 1;
 const T = { playing: false, anchorSec: 0, anchorTime: 0, pausedBeat: 0, nextIdx: 0, leadEnd: -Infinity, nextTick: Infinity };
+let multiTouchAt = 0;             // last time two or more fingers were down
+const multiTouch = () => performance.now() - multiTouchAt < 600;
 let hover = null;                 // {beat, gi, x, y, src, pinned}
 let keyEls = new Map(), geom = new Map(), keyState = new Map();
 const pressed = new Map();        // pointerId -> {m, voice}
@@ -731,7 +733,7 @@ function drawFall(t) {
     else if (heldSet.has(n)) { g.strokeStyle = ACCENT + '80'; g.lineWidth = 2; g.stroke(); g.lineWidth = 1; }
     else if (!outside && n.s <= t) { g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke(); g.lineWidth = 1; }
     if (S.noteNames !== 'off' && h > 16 && w > 12) {
-      g.fillStyle = '#fff';
+      g.fillStyle = mine ? '#fff' : n.h === 'L' ? TH.onLh : TH.onRh;
       fillMusic(g, S.noteNames === 'oct' ? n.sp.nameOct : n.sp.name, x + w / 2, y1 - 7);
     }
     g.globalAlpha = 1;
@@ -962,7 +964,7 @@ function bindInspect(sel, src) {
   cv.addEventListener('pointermove', e => {
     if (!song) return;
     if (e.pointerType === 'mouse' && !down) { inspectAt(src, e.clientX, e.clientY, false); return; }
-    if (down && down.id === e.pointerId) inspectAt(src, e.clientX, e.clientY, true);
+    if (down && down.id === e.pointerId && !multiTouch()) inspectAt(src, e.clientX, e.clientY, true);
   });
   cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && hover && !hover.pinned) setHover(null); });
   cv.addEventListener('pointerdown', e => {
@@ -972,6 +974,8 @@ function bindInspect(sel, src) {
       if (hover) { seek(hover.beat, false); }
       return;
     }
+    // a second finger (two-finger reset) is not a tap on the music
+    if (!e.isPrimary || multiTouch()) { if (hover && hover.pinned) setHover(null); return; }
     down = { id: e.pointerId };
     cv.setPointerCapture(e.pointerId);
     inspectAt(src, e.clientX, e.clientY, true);
@@ -995,16 +999,17 @@ function miniKbdSvg(pcs, root) {
   const label = m => song.speller(m + 60).name;
   let svg = `<svg viewBox="0 0 300 ${H + 2}" xmlns="http://www.w3.org/2000/svg">`;
   const fillFor = m => tones.includes(m) ? (m % 12 === root ? TH.css.primary : HAND.R) : null;
+  const textFor = m => m % 12 === root ? TH.onPrimary : TH.onRh;
   whites.forEach((m, i) => {
     const f = fillFor(m);
     svg += `<rect x="${i * ww}" y="0" width="${ww}" height="${H}" rx="3" fill="${f || '#f4f4f2'}" stroke="#222"/>`;
-    if (f) svg += `<text x="${i * ww + ww / 2}" y="${H - 7}" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">${label(m)}</text>`;
+    if (f) svg += `<text x="${i * ww + ww / 2}" y="${H - 7}" font-size="10" font-weight="700" fill="${textFor(m)}" text-anchor="middle">${label(m)}</text>`;
   });
   blacks.forEach(m => {
     const wi = whites.filter(w => w < m).length;
     const x = wi * ww - ww * 0.31, f = fillFor(m);
     svg += `<rect x="${x}" y="0" width="${ww * 0.62}" height="${H * 0.6}" rx="2" fill="${f || '#1a1a1a'}" stroke="#000"/>`;
-    if (f) svg += `<text x="${x + ww * 0.31}" y="${H * 0.6 - 5}" font-size="8" font-weight="700" fill="#fff" text-anchor="middle">${label(m)}</text>`;
+    if (f) svg += `<text x="${x + ww * 0.31}" y="${H * 0.6 - 5}" font-size="8" font-weight="700" fill="${textFor(m)}" text-anchor="middle">${label(m)}</text>`;
   });
   return svg + '</svg>';
 }
@@ -1418,7 +1423,10 @@ kbd.addEventListener('pointermove', e => {
 // two-finger double tap anywhere = back to the start of the loop
 let lastTwoFinger = 0;
 document.addEventListener('touchstart', e => {
-  if (e.touches.length !== 2 || !song) return;
+  if (e.touches.length < 2 || !song) return;
+  multiTouchAt = performance.now();
+  if (hover && hover.pinned) setHover(null);
+  if (e.touches.length !== 2) return;
   const t = performance.now();
   if (t - lastTwoFinger < 450) {
     lastTwoFinger = 0;

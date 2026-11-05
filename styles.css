@@ -21,7 +21,7 @@ button:hover, select:hover { border-color: color-mix(in srgb, var(--fg) 25%, var
 .ico .f { fill: currentColor; stroke: none; }
 button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 button:active { transform: translateY(1px); }
-button.primary { background: var(--primary); border-color: var(--primary-line); font-weight: 600; color: #fff; }
+button.primary { background: var(--primary); border-color: var(--primary-line); font-weight: 600; color: var(--on-primary); }
 button.ghost { background: transparent; }
 button.icon { min-width: 38px; padding: 0 9px; color: var(--dim); }
 button.icon:hover { color: var(--fg); }
@@ -30,7 +30,7 @@ button.small .ico { width: 15px; height: 15px; }
 button.big { min-height: 46px; padding: 0 20px; font-size: 16px; }
 button.toggle { color: var(--dim); }
 button.toggle.on { background: color-mix(in srgb, var(--primary) 22%, var(--panel2)); border-color: var(--primary-line); color: var(--fg); }
-button.play { min-width: 58px; background: var(--primary); border-color: var(--primary-line); color: #fff; }
+button.play { min-width: 58px; background: var(--primary); border-color: var(--primary-line); color: var(--on-primary); }
 button.play .ico { width: 20px; height: 20px; }
 button.play.on { background: color-mix(in srgb, var(--primary) 70%, #000); }
 .mono { font-variant-numeric: tabular-nums; }
@@ -67,8 +67,8 @@ button.play.on { background: color-mix(in srgb, var(--primary) 70%, #000); }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg .hl { display: flex; align-items: center; padding: 0 9px; font-size: 12px; font-weight: 800; color: #fff; border-right: 1px solid var(--line); }
 .seg[data-hand=L] .hl { color: var(--lh); } .seg[data-hand=R] .hl { color: var(--rh); }
-.seg[data-hand=L] button.on { background: var(--lh); color: #fff; }
-.seg[data-hand=R] button.on { background: var(--rh); color: #fff; }
+.seg[data-hand=L] button.on { background: var(--lh); color: var(--on-lh); }
+.seg[data-hand=R] button.on { background: var(--rh); color: var(--on-rh); }
 .spacer { flex: 1; }
 .now { text-align: right; min-width: 90px; }
 #nowChord { font-size: 22px; font-weight: 800; color: var(--fg); line-height: 1.1; min-height: 24px; }
@@ -95,8 +95,8 @@ main { flex: 1; display: flex; min-height: 0; }
 .key.b { height: 62%; background: linear-gradient(#2a2a2a, #111); color: #8a8a8a; z-index: 2; font-size: 9px; }
 .key .oct { font-size: 9px; font-weight: 400; color: #b0b0b0; margin-bottom: 2px; }
 .key.c4 { box-shadow: inset 0 -4px 0 #c0392b; }
-.key.L { background: var(--lh) !important; color: #fff !important; }
-.key.R { background: var(--rh) !important; color: #fff !important; }
+.key.L { background: var(--lh) !important; color: var(--on-lh) !important; }
+.key.R { background: var(--rh) !important; color: var(--on-rh) !important; }
 .key.press { background: #8fd18f !important; color: #fff !important; }
 .key.hs { box-shadow: inset 0 0 0 3px var(--accent); }
 .key.hh { box-shadow: inset 0 0 0 2px rgba(255, 213, 74, .45); }
@@ -111,7 +111,7 @@ main { flex: 1; display: flex; min-height: 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .chip { border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 700; color: var(--fg); background: color-mix(in srgb, var(--fg) 14%, var(--panel2)); }
 .chip.L { background: var(--lh); } .chip.R { background: var(--rh); }
-.chip.root { background: var(--primary); }
+.chip.root { background: var(--primary); color: var(--on-primary); }
 .chip.held { background: transparent; border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); color: var(--dim); }
 
 #empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); z-index: 4; }
@@ -237,7 +237,7 @@ body.focus.view-sheet:not(.paper-dark) #focusbar .seg button:not(.on) { color: #
 .prow.cur .pname { border-color: var(--primary-line); }
 .pstat { min-width: 92px; font-size: 13px; }
 .pstat.s-learning { background: color-mix(in srgb, var(--accent) 16%, transparent); border-color: var(--accent); color: var(--accent); }
-.pstat.s-learned { background: var(--primary); border-color: var(--primary-line); color: #fff; font-weight: 600; }
+.pstat.s-learned { background: var(--primary); border-color: var(--primary-line); color: var(--on-primary); font-weight: 600; }
 
 /* settings */
 .lrow { display: flex; justify-content: space-between; }
